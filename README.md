@@ -19,4 +19,4 @@ Mysql DB
 Flyway
 Docker
 
-Starting the is via docker-compose, just executing the command "docker-compose up --build"
+Starting the app is via docker-compose, just executing the command "docker-compose up --build"
