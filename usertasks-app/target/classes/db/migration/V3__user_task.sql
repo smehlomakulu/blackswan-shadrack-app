@@ -1,4 +1,4 @@
-CREATE TABLE `user_task`
+CREATE TABLE `users_task`
 (
     `id`          bigint(20) not null AUTO_INCREMENT,
     `user_id`     bigint(20) not null,

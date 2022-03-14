@@ -18,7 +18,7 @@ import java.util.Set;
 @AllArgsConstructor
 public class User extends BaseEntity {
 
-    @Column(name = "username", unique = true)
+    @Column(name = "user_name", unique = true)
     private String username;
 
     @Column(name = "first_name")
@@ -32,7 +32,7 @@ public class User extends BaseEntity {
                 CascadeType.PERSIST,
                 CascadeType.PERSIST
             })
-    @JoinTable(name = "user_task",
+    @JoinTable(name = "users_task",
             joinColumns = { @JoinColumn( name = "user_id") },
             inverseJoinColumns = { @JoinColumn( name = "task_id")})
     private Set<Task> tasks = new HashSet<>();
@@ -43,11 +43,9 @@ public class User extends BaseEntity {
     }
 
     public void removeTask(Long taskId) {
-        Optional<Task> task = this.tasks.stream().filter(t -> t.getId() == taskId).findFirst();
-        if(task.isPresent()){
-            this.tasks.remove(task);
-            task.get().getUsers().remove(this);
-        }
+        Task task = this.tasks.stream().filter(t -> t.getId() == taskId).findFirst().orElse(null);
+        if(task != null) this.tasks.remove(task);
+        task.getUsers().remove(this);
     }
 
     public Optional<Task> getTask(Set<Task> tasks, Long taskId) {

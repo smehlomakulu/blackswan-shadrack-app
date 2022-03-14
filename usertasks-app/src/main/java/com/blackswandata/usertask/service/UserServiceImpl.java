@@ -6,6 +6,8 @@ import com.blackswandata.usertask.repository.UserRepository;
 import com.blackswandata.usertask.request.UserRequest;
 import com.blackswandata.usertask.response.UserResponse;
 import jdk.nashorn.internal.runtime.options.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,13 +20,15 @@ public class UserServiceImpl implements UserService {
 
     private UserRepository userRepository;
 
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+
     @Autowired
     public UserServiceImpl(UserRepository userRepository){
         this.userRepository = userRepository;
     }
 
     @Override
-    public UserResponse createUser(UserRequest request) throws Exception{
+    public UserResponse createUser(UserRequest request) {
         User newUser = new User();
         newUser.setUsername(request.getUserName());
         newUser.setFirstName(request.getName());
@@ -35,7 +39,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse updateUser(Long userId, UserRequest request) throws Exception{
-        User updateUser = null;
+        User updateUser;
+        logger.debug("Username-{}, name-{}, lastname-{}",request.getUserName(), request.getName(), request.getLastName());
         Optional<User> user = userRepository.findById(userId);
         if(user.isPresent()) {
             updateUser = user.get();
@@ -43,8 +48,8 @@ public class UserServiceImpl implements UserService {
             updateUser.setFirstName(request.getName());
             updateUser.setLastName(request.getLastName());
             User newUser = userRepository.save(updateUser);
-            return new UserResponse(newUser.getId(), newUser.getUsername(),
-                                    newUser.getFirstName(), newUser.getLastName());
+            return new UserResponse(newUser.getId(), newUser.getFirstName(),
+                                    newUser.getUsername(), newUser.getLastName());
         } else {
             throw new UserNotFoundException(String.format("Failed to find user with ID: [%d]", userId));
         }

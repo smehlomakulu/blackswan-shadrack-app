@@ -1,0 +1,1 @@
+alter table `users` add (created_date datetime default current_timestamp on update current_timestamp);

@@ -20,4 +20,6 @@ public interface TaskService {
 
     void deleteTaskByUser(Long userId, Long taskId) throws Exception;
 
+    void updateTaskStatus();
+
 }

@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface UserService {
 
-    UserResponse createUser(UserRequest user) throws Exception;
+    UserResponse createUser(UserRequest user);
 
     UserResponse updateUser(Long userId, UserRequest request) throws Exception;
 

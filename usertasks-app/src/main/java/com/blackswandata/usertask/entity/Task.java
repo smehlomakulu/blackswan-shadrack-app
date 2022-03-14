@@ -1,5 +1,6 @@
 package com.blackswandata.usertask.entity;
 
+import com.blackswandata.usertask.TaskStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
 import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,10 +28,12 @@ public class Task extends BaseEntity{
     @Column(name = "description", nullable = false)
     private String description;
 
-    @CreationTimestamp
-    @Temporal(TemporalType.TIMESTAMP)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = true)
+    private TaskStatus status;
+
     @Column(name = "date_time", nullable = false)
-    private java.util.Date date;
+    private LocalDateTime date;
 
     @ManyToMany(fetch = FetchType.LAZY,
           cascade = {

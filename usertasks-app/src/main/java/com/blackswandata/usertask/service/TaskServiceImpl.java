@@ -3,6 +3,7 @@ package com.blackswandata.usertask.service;
 import com.blackswandata.usertask.Exception.TaskCreationFailureException;
 import com.blackswandata.usertask.Exception.TaskNotFoundException;
 import com.blackswandata.usertask.Exception.UserNotFoundException;
+import com.blackswandata.usertask.TaskStatus;
 import com.blackswandata.usertask.entity.Task;
 import com.blackswandata.usertask.entity.User;
 import com.blackswandata.usertask.repository.TaskRepository;
@@ -12,16 +13,19 @@ import com.blackswandata.usertask.request.UserRequest;
 import com.blackswandata.usertask.response.BaseResponse;
 import com.blackswandata.usertask.response.TaskResponse;
 import com.blackswandata.usertask.response.UserTaskResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 @Component
 public class TaskServiceImpl implements TaskService{
+
+    private static final Logger logger = LoggerFactory.getLogger(TaskServiceImpl.class);
 
     private UserRepository userRepository;
     private TaskRepository taskRepository;
@@ -34,34 +38,28 @@ public class TaskServiceImpl implements TaskService{
 
     @Override
     public BaseResponse createTask(Long userId, TaskRequest taskRequest) throws Exception{
-        Task task = null;
+
+        Task task;
         User user = userRepository.findById(userId).orElse(null);
-        BaseResponse response = null;
-        //Set<User> users = new HashSet<>();
+        BaseResponse response;
         if(user != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime dateTime = LocalDateTime.parse(taskRequest.getDate(), formatter);
+
+            logger.debug("Task: name-{}, description-{}, status-{}, date-{}", taskRequest.getName(),
+                                                                              taskRequest.getDescription(),
+                                                                              taskRequest.getStatus(), taskRequest.getDate());
             task = new Task();
             task.setName(taskRequest.getName());
             task.setDescription(taskRequest.getDescription());
-            //users.add(user);
-            //task.setUsers(users);
+            task.setStatus(TaskStatus.valueOf(taskRequest.getStatus().toUpperCase(Locale.ROOT)));
+            task.setDate(dateTime);
             user.addTask(task);
-            user = userRepository.save(user);
+            task = taskRepository.save(task);
             Set<Task> userTasks = user.getTasks();
-            if(userTasks.size() == 1) {
-                task = userTasks.stream().iterator().next();
-                response = new TaskResponse(task.getId(), task.getName(), task.getDescription(), task.getDate().toString());
-            } else if(userTasks.size() > 1){
-                Set<TaskResponse> tasks = new HashSet<>();
-                userTasks.forEach(ut -> {
-                    TaskResponse taskResponse = new TaskResponse(ut.getId(), ut.getName(), ut.getDescription(),
-                                                                                           ut.getDate().toString());
-                    tasks.add(taskResponse);
-                });
-                response = new UserTaskResponse(user.getId(), user.getFirstName(),
-                                                user.getUsername(), user.getLastName(), tasks);
-            } else {
-                throw new TaskCreationFailureException(String.format("Failed to create Task for User with ID: [%s]", userId));
-            }
+            response = new TaskResponse(task.getId(), task.getName(), task.getDescription(),
+                                        task.getStatus().status(),task.getDate().toString());
+
         } else {
             throw new UserNotFoundException(String.format("User with the ID: [%s] not found", userId));
         }
@@ -77,11 +75,14 @@ public class TaskServiceImpl implements TaskService{
                        .orElseThrow(() ->new TaskNotFoundException(String.format("Task with ID [%d] for user ID [%d] not found", taskId, userId)));;
 
             task.setName(request.getName());
+            task.setStatus(TaskStatus.valueOf(request.getStatus().toUpperCase(Locale.ROOT)));
+            task.setDescription(request.getDescription());
             user.addTask(task);
-            userRepository.save(user);
+            task = taskRepository.save(task);
 
             TaskResponse taskResponse = new TaskResponse(task.getId(), task.getName(),
-                                                         task.getDescription(), task.getDate().toString());
+                                                         task.getDescription(), task.getStatus().status(),
+                                                         task.getDate().toString());
             return taskResponse;
         } else {
             throw new UserNotFoundException(String.format("User with ID: [%s] could not be found", userId));
@@ -97,6 +98,7 @@ public class TaskServiceImpl implements TaskService{
             if(!tasks.isEmpty()) {
                 tasks.forEach(t -> {
                     TaskResponse taskResponse = new TaskResponse(t.getId(), t.getName(), t.getDescription(),
+                                                                                         t.getStatus().status(),
                                                                                          t.getDate().toString());
                     response.add(taskResponse);
                 });
@@ -116,7 +118,8 @@ public class TaskServiceImpl implements TaskService{
                         .orElseThrow(() ->new TaskNotFoundException(String.format("Task with ID [%d] for user ID [%d] not found", taskId, userId)));
 
         TaskResponse taskResponse = new TaskResponse(task.getId(), task.getName(),
-                                                     task.getDescription(), task.getDate().toString());
+                                                     task.getDescription(), task.getStatus().status(),
+                                                     task.getDate().toString());
         return taskResponse;
     }
 
@@ -126,5 +129,15 @@ public class TaskServiceImpl implements TaskService{
                                   .orElseThrow(() -> new UserNotFoundException(String.format("User with ID: [%s] could not be found", userId)));
         user.removeTask(taskId);
         userRepository.save(user);
+    }
+
+    @Override
+    public void updateTaskStatus() {
+        List<Task> tasks = taskRepository.findOutdatedTaskStatus();
+        tasks.forEach(t -> {
+            logger.debug("Task with ID {} has {} status", t.getId(), t.getStatus());
+            t.setStatus(TaskStatus.DONE);
+            taskRepository.save(t);
+        });
     }
 }
